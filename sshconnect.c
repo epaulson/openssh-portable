@@ -508,11 +508,23 @@ ssh_connect(const char *host, struct addrinfo *addrs,
 }
 
 static void
-send_client_banner(int connection_out, int minor1)
+send_client_banner(int connection_out, int minor1, const char *host)
 {
 	/* Send our own protocol version identification. */
-	xasprintf(&client_version_string, "SSH-%d.%d-%.100s\r\n",
-	    PROTOCOL_MAJOR_2, PROTOCOL_MINOR_2, SSH_VERSION);
+	char *tmp, *expanded;
+	xasprintf(&tmp, "%s%s", *options.version_addendum == '\0' ? "" : " ", 
+              options.version_addendum); 
+	expanded = percent_expand(tmp, "h", host, (char *)NULL);	
+	if (strchr(expanded, '\r') != NULL)
+		fatal("send_client_banner: cannot include carriage return " 
+			"in version addendum");	
+	xasprintf(&client_version_string, "SSH-%d.%d-%.100s%s\r\n",
+	    PROTOCOL_MAJOR_2, PROTOCOL_MINOR_2, SSH_VERSION, expanded);
+	free(tmp);
+	free(expanded);
+	if(strlen(client_version_string) > 255)
+		fatal("send_client_banner: banner too long: %.255s", 
+			client_version_string);	
 	if (atomicio(vwrite, connection_out, client_version_string,
 	    strlen(client_version_string)) != strlen(client_version_string))
 		fatal("write: %.100s", strerror(errno));
@@ -525,7 +537,7 @@ send_client_banner(int connection_out, int minor1)
  * identification string.
  */
 void
-ssh_exchange_identification(int timeout_ms)
+ssh_exchange_identification(int timeout_ms, const char *host)
 {
 	char buf[256], remote_version[256];	/* must be same size! */
 	int remote_major, remote_minor, mismatch;
@@ -535,7 +547,7 @@ ssh_exchange_identification(int timeout_ms)
 	size_t len;
 	int rc;
 
-	send_client_banner(connection_out, 0);
+	send_client_banner(connection_out, 0, host);
 
 	/* Read other side's version identification. */
 	for (n = 0;;) {
@@ -1306,7 +1318,7 @@ ssh_login(Sensitive *sensitive, const char *orighost,
 	lowercase(host);
 
 	/* Exchange protocol version identification strings with the server. */
-	ssh_exchange_identification(timeout_ms);
+	ssh_exchange_identification(timeout_ms, host);
 
 	/* Put the connection into non-blocking mode. */
 	packet_set_nonblocking();

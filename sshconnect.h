@@ -39,7 +39,7 @@ void	 ssh_kill_proxy_command(void);
 void	 ssh_login(Sensitive *, const char *, struct sockaddr *, u_short,
     struct passwd *, int);
 
-void	 ssh_exchange_identification(int);
+void	 ssh_exchange_identification(int, const char *);
 
 int	 verify_host_key(char *, struct sockaddr *, struct sshkey *);
 

@@ -171,7 +171,7 @@ typedef enum {
 	oCanonicalizeFallbackLocal, oCanonicalizePermittedCNAMEs,
 	oStreamLocalBindMask, oStreamLocalBindUnlink, oRevokedHostKeys,
 	oFingerprintHash, oUpdateHostkeys, oHostbasedKeyTypes,
-	oPubkeyAcceptedKeyTypes, oProxyJump,
+	oPubkeyAcceptedKeyTypes, oProxyJump, oVersionAddendum,
 	oIgnore, oIgnoredUnknownOption, oDeprecated, oUnsupported
 } OpCodes;
 
@@ -305,6 +305,7 @@ static struct {
 	{ "pubkeyacceptedkeytypes", oPubkeyAcceptedKeyTypes },
 	{ "ignoreunknown", oIgnoreUnknown },
 	{ "proxyjump", oProxyJump },
+	{ "versionaddendum", oVersionAddendum },
 
 	{ NULL, oBadOption }
 };
@@ -1653,6 +1654,10 @@ parse_keytypes:
 		charptr = &options->identity_agent;
 		goto parse_string;
 
+	case oVersionAddendum:
+		charptr = &options->version_addendum;
+		goto parse_string;
+
 	case oDeprecated:
 		debug("%s line %d: Deprecated option \"%s\"",
 		    filename, linenum, keyword);
@@ -1853,6 +1858,7 @@ initialize_options(Options * options)
 	options->update_hostkeys = -1;
 	options->hostbased_key_types = NULL;
 	options->pubkey_key_types = NULL;
+	options->version_addendum = NULL;
 }
 
 /*
@@ -2022,6 +2028,10 @@ fill_default_options(Options * options)
 		options->fingerprint_hash = SSH_FP_HASH_DEFAULT;
 	if (options->update_hostkeys == -1)
 		options->update_hostkeys = 0;
+	if (options->version_addendum == NULL)
+		options->version_addendum = xstrdup("");
+	if(strcasecmp(options->version_addendum, "none") == 0)
+		options->version_addendum = xstrdup("");
 	if (kex_assemble_names(KEX_CLIENT_ENCRYPT, &options->ciphers) != 0 ||
 	    kex_assemble_names(KEX_CLIENT_MAC, &options->macs) != 0 ||
 	    kex_assemble_names(KEX_CLIENT_KEX, &options->kex_algorithms) != 0 ||
@@ -2527,6 +2537,8 @@ dump_client_config(Options *o, const char *host)
 	dump_cfg_string(oPubkeyAcceptedKeyTypes, o->pubkey_key_types);
 	dump_cfg_string(oRevokedHostKeys, o->revoked_host_keys);
 	dump_cfg_string(oXAuthLocation, o->xauth_location);
+	dump_cfg_string(oVersionAddendum, *o->version_addendum == '\0'
+		? "none" : o->version_addendum);
 
 	/* Forwards */
 	dump_cfg_forwards(oDynamicForward, o->num_local_forwards, o->local_forwards);

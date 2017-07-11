@@ -164,6 +164,7 @@ typedef struct {
 	char   *jump_extra;
 
 	char	*ignored_unknown; /* Pattern list of unknown tokens to ignore */
+	char	*version_addendum;	/* Appended to SSH banner */
 }       Options;
 
 #define SSH_CANONICALISE_NO	0
